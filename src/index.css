@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --ink: #18181b;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #F7F4EB;
+    color: #18181b;
+  }
+
+  /* Neo-Brutalist High-Contrast Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F0ECE1;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #18181b;
+    border-radius: 9999px;
+    border: 2px solid #F0ECE1;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+  }
+}
+
+/* ============================================================== */
+/* NEO-BRUTALIST / POP ART MEMPHIS UTILITIES                      */
+/* ============================================================== */
+
+/* Main Card Containers */
+.neo-card {
+  background-color: #ffffff;
+  border: 2.5px solid #18181b;
+  border-radius: 1.5rem;
+  box-shadow: 4px 4px 0px 0px #18181b;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.neo-card-sm {
+  background-color: #ffffff;
+  border: 2px solid #18181b;
+  border-radius: 1rem;
+  box-shadow: 3px 3px 0px 0px #18181b;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.neo-card-interactive {
+  background-color: #ffffff;
+  border: 2.5px solid #18181b;
+  border-radius: 1.5rem;
+  box-shadow: 4px 4px 0px 0px #18181b;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.neo-card-interactive:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px #18181b;
+}
+
+.neo-card-interactive:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #18181b;
+}
+
+/* Interactive Buttons */
+.neo-btn {
+  border: 2px solid #18181b;
+  box-shadow: 3px 3px 0px 0px #18181b;
+  font-weight: 700;
+  transition: all 0.12s ease-in-out;
+}
+
+.neo-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px #18181b;
+}
+
+.neo-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px 0px #18181b;
+}
+
+/* Sticker Badges (As seen in reference image: NOW PLAYING, BETA, TRENDING, NEW, FAV) */
+.neo-sticker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 2px solid #18181b;
+  box-shadow: 2px 2px 0px 0px #18181b;
+  transition: transform 0.15s ease;
+}
+
+.neo-sticker:hover {
+  transform: scale(1.05) rotate(0deg) !important;
+}
+
+/* Input Fields */
+.neo-input {
+  border: 2px solid #18181b;
+  box-shadow: 3px 3px 0px 0px #18181b;
+  outline: none;
+  transition: box-shadow 0.15s ease;
+}
+
+.neo-input:focus {
+  box-shadow: 5px 5px 0px 0px #18181b;
+}
+
+/* Custom Range Slider (Scrubber & Volume) */
+input[type="range"].neo-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"].neo-slider::-webkit-slider-runnable-track {
+  background: #e4e4e7;
+  border: 1.5px solid #18181b;
+  height: 8px;
+  border-radius: 9999px;
+}
+
+input[type="range"].neo-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6px;
+  background-color: #ffe853;
+  border: 2px solid #18181b;
+  height: 20px;
+  width: 20px;
+  border-radius: 9999px;
+  box-shadow: 2px 2px 0px 0px #18181b;
+  transition: transform 0.1s ease;
+}
+
+input[type="range"].neo-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+}
+
+/* Memphis Background Pattern */
+.bg-memphis-dots {
+  background-image: radial-gradient(#18181b 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+  opacity: 0.06;
+}
+
+/* Equalizer Bars Animation */
+@keyframes neo-eq-1 {
+  0%, 100% { height: 6px; }
+  50% { height: 26px; }
+}
+@keyframes neo-eq-2 {
+  0%, 100% { height: 22px; }
+  50% { height: 8px; }
+}
+@keyframes neo-eq-3 {
+  0%, 100% { height: 12px; }
+  50% { height: 30px; }
+}
+@keyframes neo-eq-4 {
+  0%, 100% { height: 28px; }
+  50% { height: 14px; }
+}
+
+.animate-neo-eq-1 { animation: neo-eq-1 0.85s ease-in-out infinite; }
+.animate-neo-eq-2 { animation: neo-eq-2 0.7s ease-in-out infinite; }
+.animate-neo-eq-3 { animation: neo-eq-3 1.1s ease-in-out infinite; }
+.animate-neo-eq-4 { animation: neo-eq-4 0.6s ease-in-out infinite; }
+
+/* Subtle Pop Art float */
+@keyframes pop-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(1deg); }
+}
+.animate-pop-float {
+  animation: pop-float 4s ease-in-out infinite;
+}

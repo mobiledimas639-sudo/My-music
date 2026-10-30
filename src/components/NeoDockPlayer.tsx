@@ -25,6 +25,7 @@ interface NeoDockPlayerProps {
   isMuted: boolean;
   isLiked: boolean;
   isYouTubeMode: boolean;
+  sleepTimerRemaining?: number | null;
   onTogglePlay: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -35,6 +36,7 @@ interface NeoDockPlayerProps {
   onToggleYouTubeMode: () => void;
   onOpenYouTubeModal?: (track: Track) => void;
   onToggleSpectrum?: () => void;
+  onOpenFullPlayer?: () => void;
 }
 
 export const NeoDockPlayer: React.FC<NeoDockPlayerProps> = ({
@@ -46,6 +48,7 @@ export const NeoDockPlayer: React.FC<NeoDockPlayerProps> = ({
   isMuted,
   isLiked,
   isYouTubeMode,
+  sleepTimerRemaining,
   onTogglePlay,
   onPrev,
   onNext,
@@ -55,7 +58,8 @@ export const NeoDockPlayer: React.FC<NeoDockPlayerProps> = ({
   onToggleLike,
   onToggleYouTubeMode,
   onOpenYouTubeModal,
-  onToggleSpectrum
+  onToggleSpectrum,
+  onOpenFullPlayer
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -69,10 +73,10 @@ export const NeoDockPlayer: React.FC<NeoDockPlayerProps> = ({
   return (
     <aside 
       aria-label="Pemutar Audio Mengambang"
-      className="fixed bottom-[60px] sm:bottom-4 left-2 right-2 sm:left-6 sm:right-6 lg:left-10 lg:right-10 max-w-5xl mx-auto z-30 bg-white border-2 border-slate-900 rounded-xl sm:rounded-2xl shadow-[4px_4px_0px_#18181b] overflow-hidden transition-all"
+      className="fixed bottom-[58px] sm:bottom-[64px] md:bottom-[70px] left-2.5 right-2.5 sm:left-4 sm:right-4 md:left-6 md:right-6 max-w-3xl mx-auto z-40 bg-white/95 backdrop-blur-md border-2 border-slate-900 rounded-2xl shadow-[3px_3px_0px_#18181b] overflow-hidden transition-all"
     >
       {/* Top Scrubber Line */}
-      <div className="w-full bg-slate-200 h-1.5 cursor-pointer relative" onClick={(e) => {
+      <div className="w-full bg-slate-200 h-1 cursor-pointer relative" onClick={(e) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const pos = (e.clientX - rect.left) / rect.width;
         onSeek(pos * effectiveDuration);
@@ -83,12 +87,16 @@ export const NeoDockPlayer: React.FC<NeoDockPlayerProps> = ({
         />
       </div>
 
-      <div className="p-2 sm:p-3 px-2.5 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 md:gap-6">
+      <div className="p-1.5 sm:p-2.5 px-3 sm:px-5 flex items-center justify-between gap-2 sm:gap-4">
         
-        {/* Left: Thumbnail & Song Info */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
+        {/* Left: Thumbnail & Song Info (Clickable to open Full Player) */}
+        <div 
+          onClick={() => onOpenFullPlayer?.()}
+          className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 cursor-pointer group/track select-none"
+          title="Ketuk untuk membuka pemutar penuh, antrean, waktu tidur, & lirik"
+        >
           <div className="relative shrink-0">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl overflow-hidden bg-slate-900 border-2 border-slate-900 shadow-[1px_1px_0px_#18181b]">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden bg-slate-900 border-2 border-slate-900 shadow-[1px_1px_0px_#18181b] group-hover/track:scale-105 transition-transform">
               <img
                 src={currentTrack.coverUrl}
                 alt={currentTrack.title}
@@ -97,28 +105,42 @@ export const NeoDockPlayer: React.FC<NeoDockPlayerProps> = ({
               />
             </div>
             {isPlaying && (
-              <span className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-[#86E3CE] border border-slate-900 animate-ping" />
+              <span className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-slate-900" />
             )}
           </div>
 
-          <div className="min-w-0 pr-1">
+          <div className="min-w-0 pr-1 flex-1">
             <div className="flex items-center gap-1.5">
-              <h4 className="text-xs sm:text-sm font-black uppercase text-slate-900 truncate max-w-[115px] xs:max-w-[170px] sm:max-w-xs md:max-w-none">
+              <h4 className="text-xs sm:text-sm font-black uppercase text-slate-900 truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-none group-hover/track:text-[#2B50D9] transition-colors">
                 {currentTrack.title}
               </h4>
-              <span className="neo-sticker bg-[#FFE853] text-slate-900 text-[8px] sm:text-[9px] py-0 px-1 hidden md:inline-flex">
+              <span className="neo-sticker bg-[#FFE853] text-slate-900 text-[8px] py-0 px-1 hidden md:inline-flex">
                 PLAYING
               </span>
+              {/* Active Sleep Timer badge indicator */}
+              {sleepTimerRemaining !== null && sleepTimerRemaining !== undefined && (
+                <span className="inline-flex items-center gap-0.5 text-[8px] sm:text-[9px] font-mono font-bold bg-[#86E3CE] text-slate-950 px-1.5 py-0.2 rounded border border-slate-900">
+                  🌙 {Math.ceil(sleepTimerRemaining / 60)}m
+                </span>
+              )}
             </div>
-            <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 truncate max-w-[115px] xs:max-w-[170px] sm:max-w-xs md:max-w-none">
-              {currentTrack.artist}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-none">
+                {currentTrack.artist}
+              </p>
+              <span className="text-[9px] font-mono font-bold text-slate-400 hidden xs:inline flex items-center gap-0.5">
+                • <ChevronUp size={10} className="inline text-slate-500" /> Buka
+              </span>
+            </div>
           </div>
 
           <button
-            onClick={() => onToggleLike(currentTrack)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleLike(currentTrack);
+            }}
             title={isLiked ? 'Hapus Like' : 'Sukai Lagu'}
-            className={`p-1.5 rounded-lg border border-slate-900 hidden sm:block ${
+            className={`p-1.5 rounded-lg border border-slate-900 hidden sm:block shrink-0 ${
               isLiked ? 'bg-[#FF6F59] text-white' : 'bg-white text-slate-600 hover:text-slate-950'
             }`}
           >
@@ -193,23 +215,23 @@ export const NeoDockPlayer: React.FC<NeoDockPlayerProps> = ({
             />
           </div>
 
-          {/* Visualizer button */}
+          {/* Visualizer button (shown on sm+) */}
           {onToggleSpectrum && (
             <button
               onClick={onToggleSpectrum}
               title="Buka Visualizer Spektrum"
-              className="p-1.5 rounded-xl bg-white text-slate-900 border-2 border-slate-900 shadow-[1px_1px_0px_#18181b] hover:bg-amber-100"
+              className="p-1.5 rounded-xl bg-white text-slate-900 border-2 border-slate-900 shadow-[1px_1px_0px_#18181b] hover:bg-amber-100 hidden sm:block"
             >
               <Activity size={15} />
             </button>
           )}
 
-          {/* YouTube Video Modal Button */}
+          {/* YouTube Video Modal Button (shown on sm+) */}
           {onOpenYouTubeModal && (
             <button
               onClick={() => onOpenYouTubeModal(currentTrack)}
               title="Tonton di YouTube"
-              className="p-1.5 rounded-xl bg-white text-red-600 border-2 border-slate-900 shadow-[1px_1px_0px_#18181b] hover:bg-red-50"
+              className="p-1.5 rounded-xl bg-white text-red-600 border-2 border-slate-900 shadow-[1px_1px_0px_#18181b] hover:bg-red-50 hidden sm:block"
             >
               <Youtube size={15} />
             </button>

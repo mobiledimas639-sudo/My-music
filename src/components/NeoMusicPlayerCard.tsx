@@ -41,6 +41,7 @@ interface NeoMusicPlayerCardProps {
   onToggleYouTubeMode: () => void;
   onOpenYouTubeModal?: (track: Track) => void;
   onToggleSpectrum?: () => void;
+  onOpenFullPlayer?: () => void;
 }
 
 export const NeoMusicPlayerCard: React.FC<NeoMusicPlayerCardProps> = ({
@@ -65,7 +66,8 @@ export const NeoMusicPlayerCard: React.FC<NeoMusicPlayerCardProps> = ({
   onToggleLike,
   onToggleYouTubeMode,
   onOpenYouTubeModal,
-  onToggleSpectrum
+  onToggleSpectrum,
+  onOpenFullPlayer
 }) => {
   if (!currentTrack) {
     return (
@@ -125,10 +127,14 @@ export const NeoMusicPlayerCard: React.FC<NeoMusicPlayerCardProps> = ({
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6 pt-2">
           
           {/* Section 1: Artwork Thumbnail + Title + Artist */}
-          <div className="flex items-center gap-3 sm:gap-5 w-full lg:w-auto shrink-0">
+          <div 
+            onClick={() => onOpenFullPlayer?.()}
+            className="flex items-center gap-3 sm:gap-5 w-full lg:w-auto shrink-0 cursor-pointer group/card select-none"
+            title="Buka Pemutar Penuh (Antrean, Waktu Tidur, & Lirik)"
+          >
             {/* Album Artwork with rounded corners + vinyl disk peek */}
             <div className="relative group shrink-0">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_#18181b] relative z-10">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_#18181b] relative z-10 group-hover/card:scale-105 transition-transform">
                 <img
                   src={currentTrack.coverUrl}
                   alt={currentTrack.title}
@@ -152,7 +158,7 @@ export const NeoMusicPlayerCard: React.FC<NeoMusicPlayerCardProps> = ({
             {/* Title & Artist info */}
             <div className="flex-1 min-w-0 pr-2">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-lg lg:text-xl font-black uppercase text-slate-900 tracking-tight truncate">
+                <h2 className="text-sm sm:text-lg lg:text-xl font-black uppercase text-slate-900 tracking-tight truncate group-hover/card:text-[#2B50D9] transition-colors">
                   {currentTrack.title}
                 </h2>
               </div>

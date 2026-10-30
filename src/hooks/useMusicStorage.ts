@@ -4,6 +4,7 @@ import { DEFAULT_PLAYLISTS, DEFAULT_FEATURED_TRACKS } from '../data/defaultCatal
 
 const PLAYLISTS_STORAGE_KEY = 'aurora_sound_custom_playlists_v1';
 const LIKED_STORAGE_KEY = 'aurora_sound_liked_tracks_v1';
+const HISTORY_STORAGE_KEY = 'aurora_sound_play_history_v1';
 
 export const GRADIENT_OPTIONS = [
   { id: 'emerald-teal', label: 'Aurora Emerald', value: 'from-emerald-500/80 via-teal-600/70 to-indigo-950/90' },
@@ -55,6 +56,57 @@ export function useMusicStorage() {
       console.error('Gagal menyimpan playlist ke localStorage:', e);
     }
   }, [playlists]);
+
+  // Initialize recently played tracks (history) from localStorage or defaults
+  const [recentlyPlayedTracks, setRecentlyPlayedTracks] = useState<Track[]>(() => {
+    try {
+      const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Gagal membaca riwayat pemutaran dari localStorage:', e);
+    }
+    return [
+      DEFAULT_FEATURED_TRACKS[7], // Starfall
+      DEFAULT_FEATURED_TRACKS[8], // Echoes
+      DEFAULT_FEATURED_TRACKS[9], // Velvet Sky
+      DEFAULT_FEATURED_TRACKS[10] // Drift Away
+    ].filter(Boolean);
+  });
+
+  // Save recently played tracks on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(recentlyPlayedTracks));
+    } catch (e) {
+      console.error('Gagal menyimpan riwayat pemutaran ke localStorage:', e);
+    }
+  }, [recentlyPlayedTracks]);
+
+  // Record a track in real time to play history
+  const recordTrackPlayed = useCallback((track: Track) => {
+    if (!track || !track.id) return;
+    setRecentlyPlayedTracks(prev => {
+      // Remove any previous occurrence of this track so it moves to index 0
+      const filtered = prev.filter(t => t.id !== track.id && t.title.toLowerCase() !== track.title.toLowerCase());
+      // Prepend the new track and keep the most recent 25 tracks
+      return [track, ...filtered].slice(0, 25);
+    });
+  }, []);
+
+  // Clear play history
+  const clearPlayHistory = useCallback(() => {
+    setRecentlyPlayedTracks([]);
+    try {
+      localStorage.removeItem(HISTORY_STORAGE_KEY);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   // Save liked tracks on change
   useEffect(() => {
@@ -237,6 +289,9 @@ export function useMusicStorage() {
   return {
     playlists,
     likedTracks,
+    recentlyPlayedTracks,
+    recordTrackPlayed,
+    clearPlayHistory,
     isLiked,
     toggleLikeTrack,
     createPlaylist,

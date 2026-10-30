@@ -14,7 +14,7 @@ interface ToastProps {
 
 export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss }) => {
   return (
-    <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full">
+    <div className="fixed top-3 sm:top-4 right-3 sm:right-6 z-[70] flex flex-col gap-2 pointer-events-none max-w-xs sm:max-w-sm w-auto">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
       ))}
@@ -29,7 +29,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
   useEffect(() => {
     const timer = setTimeout(() => {
       onDismiss(toast.id);
-    }, 4000);
+    }, 2800);
     return () => clearTimeout(timer);
   }, [toast.id, onDismiss]);
 
@@ -41,19 +41,20 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
       : 'bg-[#FFE853] text-slate-950';
 
   return (
-    <div className={`pointer-events-auto flex items-center justify-between gap-3 p-3 px-4 rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_#18181b] text-xs font-black uppercase tracking-tight ${bgStyle} animate-slideLeft`}>
-      <div className="flex items-center gap-2.5 min-w-0">
-        {toast.type === 'success' && <CheckCircle2 size={16} className="shrink-0 stroke-[2.5]" />}
-        {toast.type === 'error' && <AlertCircle size={16} className="shrink-0 stroke-[2.5]" />}
-        {toast.type === 'info' && <Info size={16} className="shrink-0 stroke-[2.5]" />}
+    <div className={`pointer-events-auto flex items-center justify-between gap-2.5 p-2.5 px-3.5 rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#18181b] text-xs font-black tracking-tight ${bgStyle} animate-slideLeft`}>
+      <div className="flex items-center gap-2 min-w-0">
+        {toast.type === 'success' && <CheckCircle2 size={15} className="shrink-0 stroke-[2.5]" />}
+        {toast.type === 'error' && <AlertCircle size={15} className="shrink-0 stroke-[2.5]" />}
+        {toast.type === 'info' && <Info size={15} className="shrink-0 stroke-[2.5]" />}
         <span className="truncate">{toast.text}</span>
       </div>
 
       <button
         onClick={() => onDismiss(toast.id)}
-        className="p-1 hover:bg-black/10 rounded-lg shrink-0 transition-colors"
+        className="p-1 hover:bg-black/10 rounded-lg shrink-0 transition-colors ml-1"
+        aria-label="Tutup notifikasi"
       >
-        <X size={14} className="stroke-[2.5]" />
+        <X size={13} className="stroke-[2.5]" />
       </button>
     </div>
   );

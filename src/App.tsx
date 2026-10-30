@@ -24,6 +24,8 @@ import { PlaylistModal } from './components/PlaylistModal';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
 import { YouTubeModal } from './components/YouTubeModal';
 import { AudioSpectrumVisualizer } from './components/AudioSpectrumVisualizer';
+import { FullPlayerModal } from './components/FullPlayerModal';
+import { SleepTimerModal } from './components/SleepTimerModal';
 import { Toast, ToastMessage } from './components/Toast';
 
 export default function App() {
@@ -31,6 +33,11 @@ export default function App() {
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'home' });
   const [isQueueDrawerOpen, setIsQueueDrawerOpen] = useState(false);
   const [isSpectrumExpanded, setIsSpectrumExpanded] = useState(false);
+
+  // Full Player Modal & Feature Tabs State (Antrean, Waktu Tidur, Lirik)
+  const [isFullPlayerOpen, setIsFullPlayerOpen] = useState(false);
+  const [isSleepTimerOpen, setIsSleepTimerOpen] = useState(false);
+  const [fullPlayerTab, setFullPlayerTab] = useState<'player' | 'queue' | 'lyrics'>('player');
 
   // Dynamic Featured Tracks (starts with verified defaults & reference tracks)
   const [featuredTracks, setFeaturedTracks] = useState<Track[]>(DEFAULT_FEATURED_TRACKS);
@@ -66,10 +73,13 @@ export default function App() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // Storage Hook (Custom Playlists & Liked Songs)
+  // Storage Hook (Custom Playlists & Liked Songs & Real-Time Play History)
   const {
     playlists,
     likedTracks,
+    recentlyPlayedTracks,
+    recordTrackPlayed,
+    clearPlayHistory,
     isLiked,
     toggleLikeTrack,
     createPlaylist,
@@ -107,15 +117,20 @@ export default function App() {
     toggleShuffle,
     cycleRepeat,
     removeFromQueue,
-    getFrequencyData
+    clearQueue,
+    getFrequencyData,
+    sleepTimerSetting,
+    sleepTimerRemaining,
+    setSleepTimer,
+    cancelSleepTimer
   } = useAudioPlayer();
 
-  // Load fresh hits or 30-min mixes on background startup
+  // Load fresh hits on background startup
   useEffect(() => {
     let isMounted = true;
     async function loadFreshHits() {
       try {
-        const live = await searchTracks('30 min lofi beats', 6);
+        const live = await searchTracks('lagu pop indonesia hits terbaru', 8);
         if (isMounted && live.length > 0) {
           setFeaturedTracks(prev => {
             const liveIds = new Set(live.map(t => t.id));
@@ -131,11 +146,18 @@ export default function App() {
     return () => { isMounted = false; };
   }, []);
 
-  // Play track with queue update
+  // Real-time playback history recorded automatically by the system
+  useEffect(() => {
+    if (currentTrack && currentTrack.id) {
+      recordTrackPlayed(currentTrack);
+    }
+  }, [currentTrack, recordTrackPlayed]);
+
+  // Play track with queue update & real-time history recording
   const handlePlayTrack = useCallback((track: Track, newQueue?: Track[]) => {
+    recordTrackPlayed(track);
     playTrack(track, newQueue);
-    addToast('info', `Memutar: ${track.title} — ${track.artist}`);
-  }, [playTrack, addToast]);
+  }, [playTrack, recordTrackPlayed]);
 
   // Open YouTube full player modal
   const handleOpenYouTube = (track: Track) => {
@@ -268,7 +290,7 @@ export default function App() {
       />
 
       {/* 3. Main Bento Viewport (Full width matching reference image composition) */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-10 min-w-0 relative z-10 pb-44 sm:pb-36">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-10 min-w-0 relative z-10 pb-48 sm:pb-52">
         
         {/* VIEW: HOME DASHBOARD */}
         {activeView.type === 'home' && (
@@ -311,6 +333,13 @@ export default function App() {
             onOpenYouTubeModal={handleOpenYouTube}
             onToggleSpectrum={() => setIsSpectrumExpanded(prev => !prev)}
             onSelectPlaylist={(pId) => setActiveView({ type: 'playlist', playlistId: pId })}
+            onAddToPlaylist={handleOpenAddToPlaylist}
+            recentlyPlayedTracks={recentlyPlayedTracks}
+            onClearHistory={clearPlayHistory}
+            onOpenFullPlayer={() => {
+              setFullPlayerTab('player');
+              setIsFullPlayerOpen(true);
+            }}
           />
         )}
 
@@ -415,6 +444,7 @@ export default function App() {
           isMuted={isMuted}
           isLiked={isLiked(currentTrack.id)}
           isYouTubeMode={youtubeMode}
+          sleepTimerRemaining={sleepTimerRemaining}
           onTogglePlay={togglePlay}
           onPrev={playPrev}
           onNext={playNext}
@@ -429,6 +459,10 @@ export default function App() {
           }}
           onOpenYouTubeModal={handleOpenYouTube}
           onToggleSpectrum={() => setIsSpectrumExpanded(prev => !prev)}
+          onOpenFullPlayer={() => {
+            setFullPlayerTab('player');
+            setIsFullPlayerOpen(true);
+          }}
         />
       )}
 
@@ -438,6 +472,62 @@ export default function App() {
         setActiveView={setActiveView}
         likedTracksCount={likedTracks.length}
         playlistsCount={playlists.length}
+      />
+
+      {/* 5. Full Player Modal (Expanded View with Antrean, Waktu Tidur, and Lirik Sinkron) */}
+      <FullPlayerModal
+        isOpen={isFullPlayerOpen}
+        onClose={() => setIsFullPlayerOpen(false)}
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+        duration={duration}
+        volume={volume}
+        isMuted={isMuted}
+        isLiked={currentTrack ? isLiked(currentTrack.id) : false}
+        isShuffle={isShuffle}
+        repeatMode={repeatMode}
+        queue={queue}
+        queueIndex={queueIndex}
+        sleepTimerSetting={sleepTimerSetting}
+        sleepTimerRemaining={sleepTimerRemaining}
+        activeTab={fullPlayerTab}
+        setActiveTab={setFullPlayerTab}
+        onTogglePlay={togglePlay}
+        onPrev={playPrev}
+        onNext={playNext}
+        onSeek={seek}
+        onVolumeChange={setVolume}
+        onToggleMute={toggleMute}
+        onToggleLike={handleToggleLike}
+        onToggleShuffle={toggleShuffle}
+        onToggleRepeat={cycleRepeat}
+        onSelectTrack={(t, q) => handlePlayTrack(t, q)}
+        onRemoveFromQueue={removeFromQueue}
+        onClearQueue={clearQueue}
+        onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
+        onOpenYouTubeModal={handleOpenYouTube}
+        onAddToPlaylist={handleOpenAddToPlaylist}
+      />
+
+      {/* 6. Sleep Timer Control Modal */}
+      <SleepTimerModal
+        isOpen={isSleepTimerOpen}
+        onClose={() => setIsSleepTimerOpen(false)}
+        currentSetting={sleepTimerSetting}
+        remainingSeconds={sleepTimerRemaining}
+        onSetTimer={(setting) => {
+          setSleepTimer(setting);
+          if (setting === 'end_of_track') {
+            addToast('success', 'Waktu tidur: Berhenti di akhir lagu');
+          } else if (typeof setting === 'number') {
+            addToast('success', `Waktu tidur disetel: ${setting} menit`);
+          }
+        }}
+        onCancelTimer={() => {
+          cancelSleepTimer();
+          addToast('info', 'Waktu tidur dinonaktifkan');
+        }}
       />
 
       {/* 7. Queue Side Drawer */}

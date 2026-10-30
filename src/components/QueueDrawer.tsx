@@ -132,11 +132,13 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
                           {formatTime(track.duration)}
                         </span>
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             onRemoveFromQueue(i);
                           }}
-                          className="p-1 text-slate-400 hover:text-red-600 rounded"
+                          className="p-1 text-slate-400 hover:text-red-600 rounded active:scale-95 transition-all"
                         >
                           <Trash2 size={13} />
                         </button>

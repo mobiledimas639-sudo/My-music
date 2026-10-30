@@ -72,20 +72,23 @@ export async function resolveTrackVideoId(track: Track): Promise<string | null> 
   }
 
   try {
-    const query = track.youtubeQuery || `${track.artist} ${track.title} official audio`;
-    const res = await fetch(`/api/music/search?query=${encodeURIComponent(query)}&limit=1`);
+    const query = track.youtubeQuery || `${track.artist} ${track.title}`;
+    const res = await fetch(`/api/music/search?query=${encodeURIComponent(query)}&limit=5`);
     if (!res.ok) return null;
 
     const data = await res.json();
-    if (data.results && data.results.length > 0 && data.results[0].videoId) {
-      const vid = data.results[0].videoId;
-      videoIdCache.set(cacheKey, vid);
-      videoIdCache.set(track.id, vid);
-      track.videoId = vid;
-      if (data.results[0].durationSeconds && data.results[0].durationSeconds > 30) {
-        track.duration = data.results[0].durationSeconds;
+    if (data.results && data.results.length > 0) {
+      const match = data.results.find((r: any) => r.videoId) || data.results[0];
+      if (match && match.videoId) {
+        const vid = match.videoId;
+        videoIdCache.set(cacheKey, vid);
+        videoIdCache.set(track.id, vid);
+        track.videoId = vid;
+        if (match.durationSeconds && match.durationSeconds > 30) {
+          track.duration = match.durationSeconds;
+        }
+        return vid;
       }
-      return vid;
     }
   } catch (err) {
     console.warn('Gagal meresolusi videoId YouTube untuk pemutaran penuh:', err);
@@ -96,7 +99,7 @@ export async function resolveTrackVideoId(track: Track): Promise<string | null> 
 /**
  * Searches music using MohammadKobirShah/InnerTube-API REST endpoint
  */
-export async function searchInnerTubeMusic(query: string, limit: number = 30): Promise<Track[]> {
+export async function searchInnerTubeMusic(query: string, limit: number = 50): Promise<Track[]> {
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
 
@@ -117,16 +120,17 @@ export async function searchInnerTubeMusic(query: string, limit: number = 30): P
     }
 
     const tracks: Track[] = data.results.map((item: any) => {
+      const isLongPlay = item.durationSeconds >= 1200;
       const track: Track = {
         id: `innertube-${item.videoId}`,
         videoId: item.videoId,
         title: item.title,
         artist: item.artist || 'YouTube Music',
-        album: item.album || 'YouTube Single',
+        album: item.album || (isLongPlay ? 'Non-Stop Mix' : 'YouTube Single'),
         coverUrl: item.coverUrl || item.thumbnail || `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`,
         previewUrl: '', // Streamed in full via YouTube Player engine
         duration: item.durationSeconds || 180,
-        genre: item.durationSeconds >= 1200 ? 'Non-Stop Mix' : 'YouTube Music',
+        genre: isLongPlay ? '30-Min Non-Stop' : (item.genre || 'YouTube Music'),
         youtubeQuery: item.youtubeQuery || `${item.artist} ${item.title}`,
         source: 'innertube'
       };
@@ -162,12 +166,12 @@ export async function searchTracks(
     return memoryCache.get(cacheKey)!;
   }
 
-  // 1. Fetch InnerTube and iTunes in parallel with generous limits
+  // 1. Fetch InnerTube (50+ full tracks & mixes) and iTunes in parallel
   const [innerTubePromise, iTunesPromise] = [
-    searchInnerTubeMusic(cleanQuery, Math.max(limit, 40)),
+    searchInnerTubeMusic(cleanQuery, Math.max(limit, 50)),
     (async () => {
       try {
-        const isIndo = /indonesia|tulus|mahalini|sheila|noah|raisa|tiara|pamungkas|dangdut|koplo/i.test(cleanQuery);
+        const isIndo = /indonesia|tulus|mahalini|sheila|noah|raisa|tiara|pamungkas|dangdut|koplo|bernadya/i.test(cleanQuery);
         const countryParam = isIndo ? '&country=ID' : '';
         const endpoint = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQuery)}&entity=song&limit=40${countryParam}`;
         const response = await fetch(endpoint, {
@@ -177,8 +181,16 @@ export async function searchTracks(
         if (!response.ok) return [];
         const data = await response.json();
         if (!data.results || !Array.isArray(data.results)) return [];
+        
+        // Filter strictly for query relevance so no random off-topic songs appear
+        const qLower = cleanQuery.toLowerCase();
         return data.results
           .filter((item: ITunesTrackResult) => item.trackName)
+          .filter((item: ITunesTrackResult) => {
+            const matchArtist = item.artistName && item.artistName.toLowerCase().includes(qLower);
+            const matchTitle = item.trackName && item.trackName.toLowerCase().includes(qLower);
+            return matchArtist || matchTitle;
+          })
           .map(formatITunesTrack);
       } catch {
         return [];
@@ -192,51 +204,43 @@ export async function searchTracks(
   const iTunesTracks: Track[] = iTunesSettled.status === 'fulfilled' ? iTunesSettled.value : [];
 
   // 2. Cross-reference: attach known videoIds from InnerTube to iTunes tracks
-  const videoIdByTitleArtist = new Map<string, string>();
+  const videoIdByTitle = new Map<string, string>();
   for (const t of innerTubeTracks) {
     if (t.videoId) {
-      const k = `${t.artist} - ${t.title}`.toLowerCase();
-      videoIdByTitleArtist.set(k, t.videoId);
+      const cleanTitle = t.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+      videoIdByTitle.set(cleanTitle, t.videoId);
     }
   }
 
   for (const it of iTunesTracks) {
-    const k = `${it.artist} - ${it.title}`.toLowerCase();
-    if (videoIdByTitleArtist.has(k)) {
-      it.videoId = videoIdByTitleArtist.get(k);
+    const cleanTitle = it.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (videoIdByTitle.has(cleanTitle)) {
+      it.videoId = videoIdByTitle.get(cleanTitle);
     }
   }
 
-  // 3. Merge seamlessly, deduplicating so user gets a huge, varied collection
+  // 3. Merge seamlessly: Put verified YouTube tracks first (which have full duration and videoId),
+  // then include any unique iTunes tracks with mapped videoIds
   const merged: Track[] = [];
   const seenKeys = new Set<string>();
 
-  // Interleave results to provide both full mixes/videos and official tracks
-  const maxLen = Math.max(innerTubeTracks.length, iTunesTracks.length);
-  for (let i = 0; i < maxLen; i++) {
-    if (i < innerTubeTracks.length) {
-      const t = innerTubeTracks[i];
-      const key = `${t.title.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
-        merged.push(t);
-      }
-    }
-    if (i < iTunesTracks.length) {
-      const t = iTunesTracks[i];
-      const key = `${t.title.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
-        merged.push(t);
-      }
+  // First add all InnerTube tracks (100% verified full video IDs & durations)
+  for (const t of innerTubeTracks) {
+    const key = `${t.title.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      merged.push(t);
     }
   }
 
-  // Fallback to remaining tracks if any
-  for (const t of [...innerTubeTracks, ...iTunesTracks]) {
-    if (!merged.some(m => m.id === t.id)) {
-      merged.push(t);
+  // Then add unique matching iTunes tracks (attaching fallback videoId if needed)
+  for (const it of iTunesTracks) {
+    const key = `${it.title.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      merged.push(it);
     }
+    if (merged.length >= limit) break;
   }
 
   if (merged.length > 0) {

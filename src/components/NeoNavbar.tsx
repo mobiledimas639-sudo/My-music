@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Download, Upload, Youtube, Menu, X, Sparkles, Disc } from 'lucide-react';
+import { Search, Plus, Download, Upload, Youtube, X, Disc } from 'lucide-react';
 import { ActiveView } from '../types/music';
 
 interface NeoNavbarProps {
@@ -24,8 +24,10 @@ export const NeoNavbar: React.FC<NeoNavbarProps> = ({
   isYouTubeMode
 }) => {
   const [searchInput, setSearchInput] = useState('');
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [showBackupMenu, setShowBackupMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const mobileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync search input if activeView is search
   useEffect(() => {
@@ -34,7 +36,14 @@ export const NeoNavbar: React.FC<NeoNavbarProps> = ({
     }
   }, [activeView]);
 
-  // Debounced live search
+  // Focus mobile input when opened
+  useEffect(() => {
+    if (isMobileSearchOpen && mobileInputRef.current) {
+      mobileInputRef.current.focus();
+    }
+  }, [isMobileSearchOpen]);
+
+  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchInput.trim().length >= 2) {
@@ -53,6 +62,7 @@ export const NeoNavbar: React.FC<NeoNavbarProps> = ({
     if (searchInput.trim()) {
       onSearch(searchInput.trim());
       setActiveView({ type: 'search', query: searchInput.trim() });
+      setIsMobileSearchOpen(false);
     }
   };
 
@@ -73,39 +83,43 @@ export const NeoNavbar: React.FC<NeoNavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-[#FAF7F2]/95 backdrop-blur-md px-4 sm:px-6 lg:px-10 py-3 sm:py-3.5 border-b-2 border-slate-900 transition-colors">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 w-full bg-[#FAF7F2]/95 backdrop-blur-md px-3 sm:px-6 lg:px-10 py-2 sm:py-2.5 border-b-2 border-slate-900 transition-colors">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2.5 sm:gap-4">
         
-        {/* Left: MUSIC APP wordmark + BETA sticker badge (Clean without sidebar button) */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Left: MUSIC APP wordmark + BETA sticker */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => setActiveView({ type: 'home' })}
-            className="flex items-center gap-2 sm:gap-2.5 text-left group focus:outline-none"
+            onClick={() => {
+              setActiveView({ type: 'home' });
+              setIsMobileSearchOpen(false);
+            }}
+            className="flex items-center gap-2 text-left group focus:outline-none"
+            title="Beranda Musik"
           >
-            <div className="w-9 h-9 rounded-xl bg-[#2B50D9] border-2 border-slate-900 shadow-[2px_2px_0px_#18181b] flex items-center justify-center text-white group-hover:rotate-6 transition-transform">
-              <Disc className="w-5 h-5 animate-spin" style={{ animationDuration: '8s' }} />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#2B50D9] border-2 border-slate-900 shadow-[2px_2px_0px_#18181b] flex items-center justify-center text-white group-hover:rotate-6 transition-transform">
+              <Disc className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" style={{ animationDuration: '8s' }} />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-black uppercase tracking-tight text-slate-900 font-sans">
+            <div className="flex items-center gap-1.5">
+              <span className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900 font-sans">
                 MUSIC APP
               </span>
-              <span className="neo-sticker bg-[#18181B] text-white rotate-[-3deg] text-[10px] py-0.5 px-2">
+              <span className="neo-sticker bg-[#18181B] text-white rotate-[-3deg] text-[9px] sm:text-[10px] py-0.5 px-1.5 font-mono">
                 BETA
               </span>
             </div>
           </button>
         </div>
 
-        {/* Center: Search pill bar (As seen in reference image) */}
-        <div className="flex-1 max-w-lg mx-2 hidden sm:block">
+        {/* Center: Search pill bar (Desktop & Tablet) */}
+        <div className="flex-1 max-w-md mx-2 hidden sm:block">
           <form onSubmit={handleSearchSubmit} className="relative w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search songs, artists, albums, or 30-min mixes..."
-              className="w-full pl-11 pr-10 py-2.5 text-xs md:text-sm font-medium bg-white text-slate-900 placeholder-slate-400 rounded-full border-2 border-slate-900 shadow-[3px_3px_0px_#18181b] focus:outline-none focus:shadow-[4px_4px_0px_#18181b] transition-all"
+              placeholder="Cari lagu, musisi, album, atau 30-min mix..."
+              className="w-full pl-10 pr-9 py-2 text-xs md:text-sm font-medium bg-white text-slate-900 placeholder-slate-400 rounded-full border-2 border-slate-900 shadow-[2px_2px_0px_#18181b] focus:outline-none focus:shadow-[3px_3px_0px_#18181b] transition-all"
             />
             {searchInput && (
               <button
@@ -114,20 +128,36 @@ export const NeoNavbar: React.FC<NeoNavbarProps> = ({
                   setSearchInput('');
                   setActiveView({ type: 'home' });
                 }}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-900 rounded-full"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-900 rounded-full"
+                title="Hapus pencarian"
               >
-                <X size={14} />
+                <X size={13} />
               </button>
             )}
           </form>
         </div>
 
         {/* Right: Quick actions + User Profile Avatar */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          {/* Quick YouTube Toggle */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Mobile search toggle button */}
+          <button
+            onClick={() => {
+              if (activeView.type !== 'search') {
+                setActiveView({ type: 'search', query: '' });
+              } else {
+                setIsMobileSearchOpen(!isMobileSearchOpen);
+              }
+            }}
+            title="Buka Pencarian"
+            className="sm:hidden p-2 text-slate-900 bg-white border-2 border-slate-900 rounded-xl shadow-[1.5px_1.5px_0px_#18181b] active:scale-95 transition-all"
+          >
+            <Search size={15} />
+          </button>
+
+          {/* Quick YouTube Mode Toggle */}
           <button
             onClick={onToggleYouTubeMode}
-            title={isYouTubeMode ? 'Mode Audio Penuh Aktif' : 'Ganti ke Mode YouTube'}
+            title={isYouTubeMode ? 'Mode Audio Penuh Aktif' : 'Ganti ke Mode Video YouTube'}
             className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full neo-btn ${
               isYouTubeMode
                 ? 'bg-[#FF6F59] text-white'
@@ -142,40 +172,40 @@ export const NeoNavbar: React.FC<NeoNavbarProps> = ({
           <button
             onClick={onOpenCreatePlaylist}
             title="Buat Playlist Baru"
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-full bg-[#FFE853] text-slate-900 neo-btn"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-xl sm:rounded-full bg-[#FFE853] text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#18181b] active:scale-95 transition-all"
           >
             <Plus size={15} className="stroke-[2.5]" />
-            <span className="hidden md:inline">Playlist</span>
+            <span className="hidden md:inline font-black uppercase text-[11px]">Playlist</span>
           </button>
 
           {/* Library Backup Menu */}
           <div className="relative">
             <button
               onClick={() => setShowBackupMenu(!showBackupMenu)}
-              title="Backup & Restore Library"
-              className="p-2 text-slate-800 bg-white rounded-full neo-btn"
+              title="Backup & Cadangan Playlist"
+              className="p-1.5 sm:p-2 text-slate-900 bg-white border-2 border-slate-900 rounded-xl sm:rounded-full shadow-[1.5px_1.5px_0px_#18181b] active:scale-95 transition-all"
             >
               <Download size={15} />
             </button>
 
             {showBackupMenu && (
-              <div className="absolute right-0 mt-2 w-52 bg-white neo-card-sm p-2 z-50 animate-pop-float">
-                <p className="text-[10px] font-black uppercase text-slate-500 px-3 py-1 tracking-wider border-b border-slate-200">
-                  Data Library
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_#18181b] p-2 z-50 animate-pop-float">
+                <p className="text-[10px] font-black uppercase text-slate-500 px-3 py-1 tracking-wider border-b border-slate-100">
+                  Data &amp; Cadangan
                 </p>
                 <button
                   onClick={() => {
                     onExportBackup();
                     setShowBackupMenu(false);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-amber-100 rounded-lg text-left transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-[#FFE853]/50 rounded-lg text-left transition-colors"
                 >
                   <Download size={14} className="text-[#2B50D9]" />
                   <span>Export Backup JSON</span>
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-amber-100 rounded-lg text-left transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-[#FFE853]/50 rounded-lg text-left transition-colors"
                 >
                   <Upload size={14} className="text-[#FF6F59]" />
                   <span>Import Backup JSON</span>
@@ -191,10 +221,10 @@ export const NeoNavbar: React.FC<NeoNavbarProps> = ({
             )}
           </div>
 
-          {/* User Profile Avatar with Crisp Border (As seen in reference image) */}
+          {/* User Profile Avatar with Crisp Border */}
           <div 
             title="Profil Pengguna"
-            className="w-10 h-10 rounded-full overflow-hidden bg-[#FFE853] border-2 border-slate-900 shadow-[2px_2px_0px_#18181b] flex items-center justify-center cursor-pointer hover:rotate-6 transition-transform"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden bg-[#FFE853] border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#18181b] flex items-center justify-center cursor-pointer hover:rotate-6 transition-transform shrink-0"
           >
             <img
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
@@ -206,19 +236,31 @@ export const NeoNavbar: React.FC<NeoNavbarProps> = ({
 
       </div>
 
-      {/* Mobile Search input bar */}
-      <div className="mt-2.5 sm:hidden">
-        <form onSubmit={handleSearchSubmit} className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search songs, artists..."
-            className="w-full pl-10 pr-8 py-2 text-xs font-medium bg-white text-slate-900 placeholder-slate-400 rounded-full border-2 border-slate-900 shadow-[2px_2px_0px_#18181b] focus:outline-none"
-          />
-        </form>
-      </div>
+      {/* Expandable Mobile Search bar (Only shown when explicitly toggled on mobile) */}
+      {isMobileSearchOpen && (
+        <div className="mt-2 sm:hidden pt-1">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+            <input
+              ref={mobileInputRef}
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Cari lagu, artis, atau 30-min mix..."
+              className="w-full pl-9 pr-8 py-2 text-xs font-medium bg-white text-slate-900 placeholder-slate-400 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_#18181b] focus:outline-none"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => setSearchInput('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-900"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </form>
+        </div>
+      )}
     </header>
   );
 };
